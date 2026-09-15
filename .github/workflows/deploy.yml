@@ -1,0 +1,37 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    # Solo despliega si el job de CI (del otro workflow) terminó bien.
+    # GitHub Actions no encadena workflows automáticamente por nombre, así
+    # que aquí se repite un chequeo rápido de pruebas antes de desplegar,
+    # para no depender de que ci.yml haya corrido primero.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias y correr pruebas antes de desplegar
+        run: |
+          pip install -r requirements-ci.txt
+          pytest tests/ -v
+
+      - name: Desplegar carpeta app/ al Space de Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git clone https://user:$HF_TOKEN@huggingface.co/spaces/cesarrf/airline-sentiment-demo hf_space
+          cp -r app/* hf_space/
+          cd hf_space
+          git add .
+          git commit -m "Deploy automático desde GitHub Actions" --allow-empty
+          git push
