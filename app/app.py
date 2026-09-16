@@ -4,7 +4,7 @@ App de Gradio para el Space de Hugging Face.
 Clasifica el sentimiento de un tweet dirigido a una aerolínea usando el
 modelo RoBERTa fine-tuned con el dataset de Twitter US Airline Sentiment.
 """
-
+import spaces
 import re
 import gradio as gr
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -29,7 +29,7 @@ def clean_for_transformer(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-
+@spaces.GPU
 def predict_sentiment(text: str):
     if not text or not text.strip():
         return {"negative": 0.0, "neutral": 0.0, "positive": 0.0}
