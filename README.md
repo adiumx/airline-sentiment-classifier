@@ -1,9 +1,5 @@
-
-
 # Clasificador de Sentimiento en Tweets de Aerolíneas
 
-<!-- 📸 CAPTURA 1: Badges de CI y Deploy (los generas en GitHub → Actions → workflow → "Create status badge").
-     Pega aquí ambos badges, uno junto al otro. Es lo primero que ve un reclutador. -->
 [![CI](https://github.com/adiumx/airline-sentiment-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/adiumx/airline-sentiment-classifier/actions/workflows/ci.yml)
 [![Deploy to Hugging Face Spaces](https://github.com/adiumx/airline-sentiment-classifier/actions/workflows/deploy.yml/badge.svg)](https://github.com/adiumx/airline-sentiment-classifier/actions/workflows/deploy.yml)
 
@@ -11,8 +7,7 @@ Pipeline end-to-end de clasificación de sentimiento en tweets dirigidos a aerol
 
 **[→ Probar la demo en vivo](https://huggingface.co/spaces/cesarrf/airline-sentiment-app)**
 
-<!-- 📸 CAPTURA 2: Screenshot de la demo funcionando en Hugging Face Spaces, con un tweet
-     escrito y las 3 barras de probabilidad visibles. Que se vea que es una app real, no solo código. -->
+![Demo de la app clasificando un tweet en Hugging Face Spaces](docs/images/ss1.png)
 
 ---
 
@@ -25,16 +20,16 @@ Pipeline end-to-end de clasificación de sentimiento en tweets dirigidos a aerol
 | RoBERTa pre-entrenado (zero-shot) | 0.735 | 0.708 |
 | **RoBERTa fine-tuned** | **0.860** | **0.816** |
 
-<!-- 📸 CAPTURA 3: La vista de comparación de runs en MLflow con los 4 modelos seleccionados,
-     mostrando accuracy y f1_macro lado a lado. Es la evidencia de que usaste tracking real. -->
+![Comparación de los 4 modelos en MLflow](docs/images/ss2.png)
 
 El hallazgo más interesante: **el modelo clásico (TF-IDF) superó al transformer pre-entrenado sin fine-tuning**. Un modelo simple entrenado específicamente en el dominio venció a uno mucho más potente pero genérico. Solo tras el fine-tuning el transformer tomó la delantera, mejorando en las tres clases a la vez.
 
-<!-- 📸 CAPTURA 4: Los gráficos de MLflow del fine-tuning por época (eval_f1_macro y eval_loss),
-     donde se ve el pico en época 2 y la caída en la 3. Evidencia visual del overfitting detectado. -->
+![Métricas del fine-tuning por época: pico en la época 2 y caída posterior](docs/images/ss3.png)
+
 La training loss baja de forma constante mientras la validación empeora a partir de la época 2 
 — sobreajuste clásico. `load_best_model_at_end=True` descartó automáticamente la época 3 
 y conservó el checkpoint de la época 2.
+
 ---
 
 ## Dificultades y decisiones de diseño
@@ -87,22 +82,20 @@ Así, por construcción, ambos modelos se evalúan sobre exactamente los mismos 
 
 El dataset real tiene 62.7% negative, 21.2% neutral, 16.1% positive — un desbalance que refleja cómo la gente realmente usa Twitter con aerolíneas.
 
+![Distribución de clases del dataset: 62.7% negative, 21.2% neutral, 16.1% positive](docs/images/ss4.png)
+
 Un modelo que siempre predijera "negative" obtendría 62.7% de accuracy sin aprender nada. Por eso:
 - Métrica principal: **F1 macro** (pesa las 3 clases por igual). El dummy obtiene 0.257 ahí, dejando claro que no aprende.
 - `class_weight="balanced"` en la regresión logística
 - Split **estratificado**, para que train y test mantengan las mismas proporciones
 
-<!-- 📸 CAPTURA 5: El gráfico de barras de la distribución de clases (negative/neutral/positive)
-     que generaste en el notebook de exploración. Muestra visualmente el desbalance. -->
-
 ### 5. La frontera neutral/negative es ambigua incluso para humanos
 
 En los cuatro modelos, el error más frecuente fue confundir "neutral" con "negative". La matriz de confusión del mejor modelo muestra 127 neutrales clasificados como negativos, contra solo 50 clasificados como positivos.
 
-Tiene sentido: un tweet neutral ("¿a qué hora abordo?") comparte vocabulario con uno negativo (vuelos, horarios, problemas) sin la carga emocional. La frontera entre "informativo" y "queja leve" es genuinamente difusa.
+![Matriz de confusión del modelo RoBERTa fine-tuned](docs/images/ss5.png)
 
-<!-- 📸 CAPTURA 6: La matriz de confusión del modelo fine-tuned. Se ve claramente
-     dónde están los errores concentrados. -->
+Tiene sentido: un tweet neutral ("¿a qué hora abordo?") comparte vocabulario con uno negativo (vuelos, horarios, problemas) sin la carga emocional. La frontera entre "informativo" y "queja leve" es genuinamente difusa.
 
 ### 6. El modelo aprende asociaciones léxicas, no razonamiento
 
@@ -136,12 +129,11 @@ Tres bloqueos reales al desplegar, que el CI **no detectó**:
 
 Los tres problemas anteriores llegaron a producción con el CI en verde. Eso no es contradictorio: las 13 pruebas validan `src/preprocess.py` (limpieza de texto y split), nada más.
 
+![Workflows de CI y Deploy ejecutándose exitosamente en GitHub Actions](docs/images/ss6.png)
+
 **No cubre:** que `app.py` importe correctamente, que las dependencias del Space sean compatibles entre sí, ni la configuración del runtime.
 
 Una mejora pendiente y concreta: `clean_for_transformer()` está duplicada en `app.py` y en `src/preprocess.py`. Si cambio una y olvido la otra, la app y el entrenamiento usarían preprocesamiento distinto — un bug silencioso que ningún test actual detectaría.
-
-<!-- 📸 CAPTURA 7: La pestaña Actions de GitHub mostrando los workflows en verde.
-     Evidencia de que el CI/CD realmente corre. -->
 
 ---
 
@@ -189,7 +181,6 @@ El fine-tuning se hizo en una RTX 3060 (~9 minutos, 3 épocas). El modelo result
 ## Alcance y limitaciones
 
 - **El dataset son tweets públicos, no tickets internos.** La gente escribe distinto en un canal público que en un ticket privado: los tweets pueden sobre-representar quejas más dramáticas por su naturaleza performativa.
-- **No predice churn.** El sentimiento es un insumo típico de modelos de abandono de clientes, pero este dataset no contiene la variable de resultado (si el cliente dejó de volar), así que esa correlación no se validó aquí.
 - **Los datos son de 2015.** El lenguaje y los temas de queja pueden haber cambiado; el modelo no fue evaluado sobre tweets recientes.
 
 ## Aplicaciones
