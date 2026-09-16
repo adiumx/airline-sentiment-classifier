@@ -188,4 +188,3 @@ El fine-tuning se hizo en una RTX 3060 (~9 minutos, 3 épocas). El modelo result
 Lo que este clasificador sí permite, con los datos disponibles:
 - Priorizar la respuesta a tweets negativos en redes sociales, donde la visibilidad pública hace que el tiempo de reacción importe
 - Monitorear la proporción de sentimiento a lo largo del tiempo como métrica de reputación
-- Cruzado con la columna `negativereason` del dataset, identificar qué causas concretas (retrasos, servicio, equipaje) concentran más quejas
