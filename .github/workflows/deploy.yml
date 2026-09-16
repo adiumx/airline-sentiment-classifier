@@ -3,13 +3,22 @@ name: Deploy to Hugging Face Spaces
 on:
   push:
     branches: [main]
+    # Solo se despliega cuando cambia algo que afecta al Space o al código.
+    # Nota: app/README.md SÍ dispara el deploy a propósito, porque ese archivo
+    # lleva la configuración del Space (sdk_version, app_file, etc.).
+    # El README de la raíz, en cambio, no dispara nada.
+    paths:
+      - 'app/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements-ci.txt'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
-    # Solo despliega si el job de CI (del otro workflow) terminó bien.
-    # GitHub Actions no encadena workflows automáticamente por nombre, así
-    # que aquí se repite un chequeo rápido de pruebas antes de desplegar,
-    # para no depender de que ci.yml haya corrido primero.
+    # Se repite un chequeo rápido de pruebas antes de desplegar, porque
+    # GitHub Actions no encadena workflows automáticamente por nombre y no
+    # se puede depender de que ci.yml haya corrido primero.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
